@@ -1,0 +1,802 @@
+---
+title: "My experiments with Probability"
+author: "Ashish Sinha"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Chapter 1: The Red Ball, White Ball Conundrum.
+
+## Introduction
+
+It was way back in 2016 when I hired a consultant company to look into a small bit of data for my organization. A young lad introduced himself as a *data scientist.* I was thoroughly amused by the notion of scientist whom I thought of wearing an apron and working in a lab carrying out experiments. I never thought people carrying on analysis of data which may be best termed as wrangling and manipulating of data calling themselves as scientists. But of course I realized that my thought was limited as I delved more into data.\
+
+Venturing further, I wanted to try the some experiments on my new found love of probability. At this point of time lets define probability as following:\
+\\begin{align} P(A)=\\frac{\\text{Number of counts of A}}{\\text{Number of times an experiment carried out}} \\end{align}\
+
+Here, we carry out an experiment wherein we are interested if A has occurred or not. We simply count the number of times A occurs and divide it by the total number of times the same experiment is carried out we get the probability of A.\
+
+### The Experimental Set up
+
+One of the questions which has bogged me for ages is\
+*"Suppose there is a jar. It has one red ball and one white ball. If we take out one ball with replacement five times, what is the chance that 3 balls is red?"*\
+This is one of the most wicked questions as there is a jar, different colors balls are there and then something called replacement is going on while we pull out the balls...By the time I reach the end, it becomes confounding and there is a mental block where to tackle the problem.\
+The best way is carry out an experiment where we have an jar having one red ball and one white ball. We pull out the first ball and check the color of the ball and write it down, then put the ball back in jar and pull out the next one and so on. Once we pulled up the ball 5 times we can count the number of red balls in those 5 pulls. So, our first round of experiment ends with 5 pulls of ball from the jar (*with replacement*).\
+Lets set up our lab then. We need an jar with balls.\
+We use here an open source **R programming** language to interact with our computer. More about R and python in subsequent chapters.
+
+```{r }
+rc<-1 # the number of red balls
+wc<-1 # the number of white balls
+red<-rep("Red",rc)
+white<-rep("White",wc)
+jar<-c(red,white) # combining red and white balls in the jar
+jar
+```
+
+Thus, our jar is ready now with 2 balls one red and other white.
+
+### Let's pick up the ball
+
+Now we need to pick up one ball and note the color of the ball and put it back. We will use **sample** function to do it. By the command below, we are pulling the ball and then checking out its color and putting it back again.\
+**Let's not get overwhelmed about the code now, let's just focus on the result of the experiment.**
+
+```{r }
+
+set.seed(1)
+# Picking up the ball 5 times with replacement.
+sample(jar,1,replace = T)
+
+sample(jar,1,replace = T)
+
+sample(jar,1,replace = T)
+
+sample(jar,1,replace = T)
+
+sample(jar,1,replace = T)
+```
+
+We see that in our first set of picking up the ball from the jar, we get 3 red balls and 2 white balls.This is totally random. It is just by chance that 3 balls are red in our first trial. We may have a seprate result from other trial which is as below.
+
+```{r}
+set.seed(5248)
+# Picking up the ball 5 times with replacement.
+sample(jar,1,replace = T)
+
+sample(jar,1,replace = T)
+
+sample(jar,1,replace = T)
+
+sample(jar,1,replace = T)
+
+sample(jar,1,replace = T)
+```
+
+Here, we get 4 white balls after the end of our experiment. Let's arrange the above result in a data frame and count the number of red balls as well.
+
+```{r}
+set.seed(1)
+nb<-5 ## number of balls drawn
+mydata<-rep(NA,nb+1)
+for(i in 1:nb){
+  mydata[i]<-sample(jar,1,replace = T)
+}
+
+count_red<-rep(NA,nb)
+for(i in 1:nb){
+  if(mydata[i]=="Red"){
+    count_red[i]=1
+  }else{
+    count_red[i]=0
+  }
+}
+mydata[6]<-as.numeric(sum(count_red))
+mydata
+```
+
+So, we see that after the first trial of pulling 5 balls, there were three red balls. Thus, $P(Red=3)=\frac{1}{1}=1$
+
+Lets do this experiment 10 times to check the output.
+
+```{r,message=F,warning=F}
+set.seed(1)
+N=10 # Number of experiments
+new_data<-matrix(NA,nrow = N,ncol = nb+1)
+count_red_new<-matrix(NA,nrow = N,ncol = nb)
+red_count<-rep(NA,N)
+for(i in 1:N){
+  for(j in 1:nb){
+    new_data[i,j]<-sample(jar,1,replace = T)
+    if(new_data[i,j]=="Red"){
+      count_red_new[i,j]=1
+    }else{
+      count_red_new[i,j]=0
+    }
+    red_count[i]=sum(count_red_new[i,])
+    new_data[i,nb+1]=red_count[i]
+  }
+}
+colnames(new_data)<-c("Draw1","Draw2","Draw3","Draw4","Draw5","Red Ball Count")
+new_data<-data.frame(new_data)
+#new_data$Red.Ball.Count<-as.integer(new_data$Red.Ball.Count)
+
+library(tidyverse)
+library(kableExtra)
+new_data %>% 
+  mutate(No_of_trials=1:N) %>% 
+  relocate(No_of_trials, .before=Draw1)%>% 
+    kbl(caption = "Carrying out Experiment 10 times") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+
+  
+
+```
+
+So we observe that in the first trial 3 red balls has been picked. In the second trail of the experiment, 3 balls is picked again.Further, 5 red balls and so on. Finally, in the tenth trail 2 red balls are picked. We can now calculate the frequency of red balls picked as under.
+
+```{r,message=FALSE,warning=FALSE}
+new_data %>% 
+  group_by(Red.Ball.Count) %>% 
+  summarize(Frequency=n()) %>% 
+  mutate(Prob=Frequency/N)%>% 
+    kbl(caption = "") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+```
+
+Here, we carried out the experiment for 10 times and notice that number of times 3 red balls has been picked is 3. Thus, the probability of number of red balls 3 will be its frequency divided by 10.We see that the probability of getting 3 red balls in 5 trails is 0.3. We find that the probability of getting 3 red balls have dropped from 1 to 0.3 after we conducted our first trial to the tenth trial.\
+Doing this experiment via hand 10 times is going to be so painful and my be prone to errors. Computers can do this at a high speed with accuracy and we can carry out this experiment for a higher number of trials say, 10,000. We just change the number of experiments from 10 to 10,000 and check the result.
+
+```{r,message=F,warning=F}
+set.seed(1)
+N=10000 # Number of experiments
+new_data<-matrix(NA,nrow = N,ncol = nb+1)
+count_red_new<-matrix(NA,nrow = N,ncol = nb)
+red_count<-rep(NA,N)
+for(i in 1:N){
+  for(j in 1:nb){
+    new_data[i,j]<-sample(jar,1,replace = T)
+    if(new_data[i,j]=="Red"){
+      count_red_new[i,j]=1
+    }else{
+      count_red_new[i,j]=0
+    }
+    red_count[i]=sum(count_red_new[i,])
+    new_data[i,nb+1]=red_count[i]
+  }
+}
+colnames(new_data)<-c("Draw1","Draw2","Draw3","Draw4","Draw5","Red Ball Count")
+new_data<-data.frame(new_data)
+
+library(tidyverse)
+df<-new_data %>% 
+  group_by(Red.Ball.Count) %>% 
+  summarize(Frequency=n()) %>% 
+  mutate(Prob=Frequency/N)
+df%>% 
+    kbl(caption = "Carrying Out Experiment 10,000 times") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+```
+
+Thus, carrying out this experiment for 10,000 times and counting the number of times 3 red balls have been drawn we get 3,156. Dividing the same by 10,000 we get 0.3156. Thus,the probability has increased from 0.3 to 0.3156 when we increased it to 10,000 trials. We may increase the number of times to carry out the experiment to check if the probability changes even more.
+
+```{r,message=F,warning=F}
+set.seed(1)
+N=250000 # Number of experiments
+new_data<-matrix(NA,nrow = N,ncol = nb+1)
+count_red_new<-matrix(NA,nrow = N,ncol = nb)
+red_count<-rep(NA,N)
+for(i in 1:N){
+  for(j in 1:nb){
+    new_data[i,j]<-sample(jar,1,replace = T)
+    if(new_data[i,j]=="Red"){
+      count_red_new[i,j]=1
+    }else{
+      count_red_new[i,j]=0
+    }
+    red_count[i]=sum(count_red_new[i,])
+    new_data[i,nb+1]=red_count[i]
+  }
+}
+colnames(new_data)<-c("Draw1","Draw2","Draw3","Draw4","Draw5","Red Ball Count")
+new_data<-data.frame(new_data)
+
+
+df<-new_data %>% 
+  group_by(Red.Ball.Count) %>% 
+  summarize(Frequency=n()) %>% 
+  mutate(Prob=Frequency/N)
+df%>% 
+    kbl(caption = "Carrying Out Experiment 250,000 times") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+```
+
+We carried out the experiment for 2,50,000 times and number of times 3 red balls, our desired result has come is 78,004 and the probability is 0.3120.\
+Let's plot this probability of getting 3 red balls of 5 trials repeated 2,50,000 times.
+
+### Plotting the Probability
+
+```{r,message=F,warning=F}
+library(plotly)
+p_1<-df %>% 
+  ggplot(aes(Red.Ball.Count,Prob))+geom_bar(stat='identity',width=0.1,fill="aquamarine3",color="black")+
+  labs(title = "Probaility Distribution in 2,50,000 trials",x="Red Ball Count",subtitle = "Probability of red ball being picked= 1/2")+
+  theme_minimal()
+ggplotly(p_1)
+```
+
+So, we see that the chance of getting 3 red balls is around 31 percent via doing the experiment over and over again. Moreover, the probability of getting three red balls and two red balls are pretty close.Further, the plot is symmetrical as well. Let's check this mathematically.
+
+### Mathematical analysis
+
+We have 1 red balls and 1 white balls. So the chance of picking the first red ball =$\frac{1}{2}=0.5$ We put it back again and then pick the new ball, the chance of picking the red ball is again 0.5. Thus, for picking 3 red balls out of 5 trials =$0.5^{3}*0.5^{2}=0.03125$.\
+Now, the number of ways 3 balls can be chosen from 5 balls = ${}^{5}C_{3}$=10. Thus, probability of picking up 3 balls in 5 tries with replacement = $10*(0.5)^5=0.3125.$ Mathematically, we got the value precisely=31.25%\
+Further, for picking 2 red balls out of 5 trials =$0.5^{2}*0.5^{3}=0.03125$.\
+Now, the number of ways 2 balls can be chosen from 5 balls = ${}^{5}C_{2}$=10. Thus, probability of picking up 2 balls in 5 tries with replacement = $10*(0.5)^5=0.3125.$ Mathematically, we got the same value as above =31.25%\
+Thus, it implies that if we carried out our experiment infinite number of times, the probability of picking 3 red balls would **converge** to 0.3125 which will be also the case of picking two red balls in 5 trials.\
+
+### Is the probability distribution always symmetrical?
+
+We saw that when we have equal number of balls in the jar, then we get a symmetrical probability distribution as per the plot in the previous section. How will the distribution of probability change if we have unequal number of balls?\
+
+We now have 2 red balls and 1 white balls.
+
+```{r}
+rc<-2 # the number of red balls
+wc<-1 # the number of white balls
+red<-rep("Red",rc)
+white<-rep("White",wc)
+jar1<-c(red,white) # combining red and white balls in the jar
+jar1
+```
+
+Let's carry out the same experiment again 2,50,000 times.
+
+```{r,warning=FALSE,message=FALSE}
+
+set.seed(1)
+N=250000 # Number of experiments
+new_data<-matrix(NA,nrow = N,ncol = nb+1)
+count_red_new<-matrix(NA,nrow = N,ncol = nb)
+red_count<-rep(NA,N)
+for(i in 1:N){
+  for(j in 1:nb){
+    new_data[i,j]<-sample(jar1,1,replace = T)
+    if(new_data[i,j]=="Red"){
+      count_red_new[i,j]=1
+    }else{
+      count_red_new[i,j]=0
+    }
+    red_count[i]=sum(count_red_new[i,])
+    new_data[i,nb+1]=red_count[i]
+  }
+}
+colnames(new_data)<-c("Draw1","Draw2","Draw3","Draw4","Draw5","Red Ball Count")
+new_data<-data.frame(new_data)
+
+
+
+df1<-new_data %>% 
+  group_by(Red.Ball.Count) %>% 
+  summarize(Frequency=n()) %>% 
+  mutate(Prob=Frequency/N)
+df1%>% 
+    kbl(caption = "Carrying Out Experiment 250,000 times with p= 2/3") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+```
+
+Plotting it we get
+
+```{r}
+p1<-df1 %>% 
+  ggplot(aes(Red.Ball.Count,Prob))+geom_bar(stat='identity',width=0.1,fill="aquamarine3",color="black")+
+  labs(title = "Probaility Distribution in 2,50,000 trials ",x="Red Ball Count",subtitle = "Probability of red ball being picked=2/3")+
+  theme_minimal()
+ggplotly(p1)
+
+```
+
+Plotting both of them side by side.\
+
+```{r,warning=FALSE,message=FALSE}
+df2<-data.frame(Red_ball_Count=df$Red.Ball.Count,p_0.5=df$Prob,p_0.67=df1$Prob)
+df2
+df3<-df2 %>% 
+  pivot_longer(-Red_ball_Count,names_to="RedBall.prob",values_to="Value")
+df3
+p2<-df3 %>% 
+  ggplot(aes(Red_ball_Count,Value,fill=`RedBall.prob`))+
+  geom_bar(stat = 'identity',width = 0.15,color="black")+facet_wrap(~`RedBall.prob`)+
+  theme_minimal()
+ggplotly(p2) %>% 
+  layout(title="Probaility Distribution in 2,50,000 trials ")
+```
+
+So, in the above figure we see that as the probability of picking the red ball increases from 0.5 to 0.67, the chances of getting more red balls to be picked also increases. We also see that chances of getting 2 red balls or less falls while chances of getting 3 or more red balls increases. Thus, we see that shape of the distribution changes with the change in probability of picking the red ball.\
+
+### What else impacts the shape of the distribution?
+
+We have seen that the distribution is impacted by the probability of red ball being picked. This distribution is also impacted by the number of times we are picking up the red balls. In our last experiment, we were carrying out pulling out balls for 5 times in a trail. Let's increase it to 6 times to find out how our distribution changes.\
+Now instead of using the codes above, lets try to make a function wherein we give it inputs as number of red balls, number of white balls,number of draws of balls and finally number of trials we get the output the probability of each expected values.\
+Let's call this function *ashish*.
+
+```{r,warning=FALSE,message=FALSE}
+library(kableExtra)
+
+ashish<-function(r,w,d,t){
+  red<-rep(1,r)# to avoid counting, we assign red ball as 1 and white ball as 0.
+  white<-rep(0,w)
+  jar<-c(red,white)
+  output<-matrix(NA,nrow = t,ncol = d+1)
+  for (i in 1:t){
+    for(j in 1:d){
+      output[i,j]=sample(jar,1,replace = T)
+      output[i,d+1]=sum(output[i,1:d],na.rm = T)
+    }
+  }
+  df<-data.frame(Random_values=output[,d+1])
+  df %>% 
+    group_by(Random_values) %>% 
+    tally() %>% 
+    rename(Frequency=n) %>% 
+    mutate(Prob=Frequency/t) 
+}
+
+```
+
+So, the function *ashish* above take input in the following order\
+r = number of red balls\
+w = number of white balls\
+d = number of draws\
+t = number of trials\
+
+Let's check out this function by giving the inputs for 6 draws as discussed above:
+
+```{r}
+df4<-ashish(1,1,6,25*10^4)
+df4
+# creating a better looking output table
+df4%>% 
+    kbl(caption = "Probability Table") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+```
+
+Plotting the data set we get:
+
+```{r}
+p3<-df4 %>% 
+  ggplot(aes(Random_values,Prob))+geom_bar(stat = 'identity',fill='steelblue',
+                                           color='black',width = 0.1)+
+  theme_minimal()+
+  labs(x="Random Values",y="Probability")
+ggplotly(p3) %>% 
+  layout(title = list(text = paste0('Probability Distribution when number of draws =6',
+                                    '<br>',
+                                    '<sup>',
+                                     'When the chance of picking red ball=0.5','</sup>')))
+```
+
+So, the above data table and figure shows the probability distribution of values 0 to 6 in the drawing of red balls when the chance of getting picked up is 0.5. We can use this function again to check the output when chance of red ball is $\frac{2}{3}$. In this case we have 2 red balls and one white balls
+
+```{r}
+df5<-ashish(2,1,6,25*10^4)
+
+
+df5%>% 
+    kbl(caption = "Probability Table") %>% 
+    kable_classic(full_width = F, html_font = "Cambria")%>%
+  kable_paper("hover",full_width=T)
+p4<-df5 %>% 
+  ggplot(aes(Random_values,Prob))+geom_bar(stat = 'identity',fill='steelblue',
+                                           color='black',width = 0.1)+
+  theme_minimal()+
+  labs(x="Random Values",y="Probability")
+ggplotly(p4) %>% 
+  layout(title = list(text = paste0('Probability Distribution when number of draws =6',
+                                    '<br>',
+                                    '<sup>',
+                                     'When the chance of picking red ball=0.67','</sup>')))
+```
+
+Checking the 4 plots together
+
+```{r,fig.width=10,warning=FALSE,message=FALSE,fig.height=10}
+library(patchwork)
+
+(p_1+p1)/(p3+p4)
+```
+
+Thus, we see that the shape of distribution depends on the probability of red ball,*p* as well as the number of draws *n*.
+
+### Some Animation
+
+Now that we have a function which generates a data frame of all possible random values and its probability, once input is given as discussed above, we can verify graphically if the probability of getting 3 red balls in 5 draws converges to 0.3125. This means we have to compute this value for each trail and see how close it is. As it is quite computational intensive (calculating probability for each trial), we will use the code for 2,000 trails just to see the trend. We are using quite a lot of iterations (*for loops*) in this. An efficient code will be highly appreciated (may be from library *purrr*).
+
+```{r,warning=FALSE,message=FALSE}
+set.seed(1)
+n<-2000
+output<-rep(NA,n)
+for(i in 1:n){
+  output[i]=ashish(1,1,5,i) %>% 
+    filter(Random_values==3) %>% 
+    select(Prob)
+}
+
+abc<-rep(NA,n)
+for(i in 1:n){
+  abc[i]=output[[i]][1]
+}
+mean(abc,na.rm=T)
+nd<-data.frame(trails=1:n,values=abc)
+q<-nd %>% 
+  ggplot(aes(trails,values))+geom_line(alpha=0.4)+theme_minimal()+geom_abline(intercept = 0.3125,slope=0,color='orange')+
+  labs(x="Trails",y="Probability",
+       title="Probability of getting 3 red balls in 5 draws with replacement",
+       subtitle = "Chance of Red Ball to be picked is 0.5")
+library(gganimate)  
+fig<-q+ transition_reveal(trails) 
+fig
+```
+
+The variations across the mean probability value keeps on decreasing as the trails are increasing.\
+Thus, we see that as the trails are increasing, the probability is converging around the values we computed i.e. 0.3125.\
+The variation around the mean can also be visualized through a histogram as shown below.
+
+```{r,message=FALSE,warning=FALSE}
+abc<-data.frame(value=abc)
+ggplotly(abc %>% 
+  ggplot(aes(value))+geom_histogram(fill='green',color='black',alpha=0.7)+
+  labs(x="Probability Value",y="Number of Counts",title="Spread or Dispersion of Probability Values")+theme_minimal())
+
+```
+
+Thus, we see that the probability values is condensed around the mean value as calculated above.
+
+### The Binomial Distribution
+
+No points for guessing what is the name of the probability distribution we discussed above, it's one of the special distribution called the **Binomial Distribution**. I believe its called binomial because the outcome of an experiment has only two alternatives; in our case it's either a red ball or a white ball.\
+Binomial distribution can also be toss of a coin. We may flip a coin 5 number of times and we can calculate how many times 3 heads comes up. There can be more examples having two distinct outcomes like: Yes or No, 1 or 0, M or F etc.\
+It has few properties which are enumerated below:
+
+#### It is a discreet distribution.
+
+The Binomial Distribution is discreet. When we carried out the experiment, we can either get 0 red ball, 1 red ball ,2 red balls and so on.We cannot get 2.5 red balls as an outcome or $\sqrt{2}$ red balls, that make no sense. However, 2.5 and $\sqrt{2}$ very much lies on the number lines and they are real numbers but the outcome of this experiment can never be all the real numbers.\
+Thus, output of the experiment, the number of times a certain random value comes is a set of $\mathbb{N}$, natural numbers.
+
+#### Sum of the probability of all the random values is 1.
+
+So, we have seen the probability distribution of of getting 3 red balls in 5 trials with replacement. Let's analyze the values of probability for each random value possible. We can use *ashsih* function to display the result.
+
+```{r}
+df6<-ashish(1,1,6,25*10^4)
+df6%>% 
+    kbl(caption = "Probability Table") %>% 
+    kable_classic(full_width = F, html_font = "Cambria")%>%
+  kable_paper("hover",full_width=T)
+```
+
+Here, we have carried our experiment $2,50,000$ times. The **n** in the table above is the number of times a particular value was the outcome of our experiment. Obviously, adding all the counts of n will lead to $2,50,000$. The probability column at the last is just $\frac{n}{250000}$. Thus, if we add probability of all the random values of the experiment we should get $1$.\
+We can check out the same.
+
+```{r}
+sum(df6$Frequency)
+sum(df6$Prob)
+```
+
+Thus, the sum of probability values for each outcome of the experiment is 1. We will see this again in the next section where we will be calculating it again mathematically.
+
+#### Parameters of the Binomial Distribution: n and p; B~(n,p)
+
+We have already seen that the Binomial Distribution is effected by the probability of red balls in the jar(*p*) and number of draws we make(*n*). If the probability is $0.5$, we find the distribution to be symmetrical and when the probability is greater than $0.5$ the distribution is skewed towards right having larger outcomes.\
+Further, the outcomes is dependent on the number of draws we make. If we had $5$ draws, the possible outcomes were 0 to 5 and when we increased the draws to 6, the outcomes varied from 0 to 6. Hence, these two parameters *p* and *n* controls the shape of the distribution.\
+Thus, we can determine the probability distribution for Binomial if we know *p* and *n*. It is represented by **B~(n,p)**. Here, B stands for binomial distribution and *n and p* are the parameters of the distribution.\
+As we go along in subsequent chapters, we will see various other distributions and discuss about their parameters which will determine the shape of the distribution. Moreover, in real world we may get data and we need to estimate the parameters to perform various other tasks.\
+There are also distributions that may not have any parameters in real world and those distributions are non-parametric in nature i.e. we do not know for sure what actually determines it's shape.Unfortunately, that's what is there in the real world. But I hope its a good start to understand these special distribution with parameters to further understand non-parametric distributions.
+
+#### Calculating probability of each outcome mathematically: the pmf
+
+As we have already seen that Binomial distribution is discreet. This implies that the outcome variables of the experiment is a set of natural numbers. We can calculate the probability value of each outcome as under:\
+$f_{X}(X=x) = {}^{n}C_{x} * p^x *(1-p)^{n-x}$ Here, X is the outcome values in our case for $5$ draws its $0$ to $5$. x is a particular value of X say $3$, *n* is the number of draws and finally *p* is the probability of the red ball getting picked which is 0.5. We have seen before, the probability of picking red ball $3$ times with replacement in 5 draws is $0.3125$ when there is one red ball and one white ball in the jar.\
+We can use R to calculate each value of the outcome using a function called *dbinom* as below:
+
+```{r}
+dbinom(3,5,0.5)
+```
+
+The first argument is *x*, the random outcome we are interested in, the second is the number of draws i.e *n* and finally the probability *p* of picking up the red ball.The function as stated above $f_{X}(x)={}^{n}C_{x} \cdot p^x (1-p)^{n-x}$ is called the **probability mass function (pmf)** for discreet binomial distribution.
+
+```{r}
+df7<-data.frame(Outcome=0:5,Probability=map_dbl(0:5,~choose(5,.x)*0.5^5)) ### instead of for loop, using iteration from purrr package
+df7%>% 
+    kbl(caption = "Probability Mass Values") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+```
+
+So, the probability to get any outcome $x$ with $n=5$ and $p=0.5$ can be written as ${}^{5}C_{x}*(0.5)^{x}*(1-0.5)^{5-x}={}^{5}C_{x}*(0.5)^{x}*(0.5)^{5-x}={}^{5}C_{x}*(0.5)^{5}$.\
+
+Now, the binomial expansion of $(1+x)^{n}$ is given as under:\
+$(1+x)^{n}={}^{n}C_{0}+{}^{n}C_{1}*x+{}^{n}C_{2}*x^{2}+....+{}^{n}C_{n}*x^{n}$\
+Replacing x =1, we get\
+$(1+1)^{n}={}^{n}C_{0}+{}^{n}C_{1}+{}^{n}C_{2}+....+{}^{n}C_{n}=2^{n}$\
+Further, if we add all the probability values for all out comes we get\
+$(0.5)^{5}*({}^{5}C_{0}+{}^{5}C_{1}+{}^{5}C_{2}+{}^{5}C_{3}+{}^{5}C_{4}+{}^{5}C_{5})=(0.5)^{5}*(1+1)^{5}=(0.5)^{5}*2^{5}=(0.5*2)^{5}=1$
+
+Hence, the sum of all the probability values of outcomes of discreet binomial distribution is **1**. This can be rewritten mathematically as $\sum\limits_{x=0}^n (f_{X}(x)={}^{n}C_{x} \cdot p^x (1-p)^{n-x})=1$.
+
+#### Cumulative Distribution Function (cdf)
+
+We have seen the values of probability for each of the values as discussed in the section *pmf* above.We have also seen that all of the probabilities add up to $1$. That is the cumulative value of the probabilities put together in the Binomial Distribution. However, if the question is asked what is the probability that in the 5 draws as made in the experiment, what is the probability that the red ball is pulled at least 3 times. This implies that $0$,$1$,$2$ or$3$ red balls may be the outcome of the experiment.\
+
+In that case, the probability of atleast 3 red balls been the outcome will be\
+
+$({}^{5}C_{0}+{}^{5}C_{1}+{}^{5}C_{2}+{}^{5}C_{3})*0.5^{5}$
+```{r}
+dbinom(0,5,0.5)+dbinom(1,5,0.5)+dbinom(2,5,0.5)+dbinom(3,5,0.5)
+## or
+pbinom(3,5,0.5)
+```
+Similarly, the probability that more than 3 red balls is the outcome will be 
+```{r}
+1-(dbinom(0,5,0.5)+dbinom(1,5,0.5)+dbinom(2,5,0.5)+dbinom(3,5,0.5))
+## or
+dbinom(4,5,0.5)+dbinom(5,5,0.5)
+## or
+pbinom(3,5,0.5,lower.tail = F)
+
+```
+
+Finally, the cumulative probability can be shown as below:
+```{r}
+df8<-data.frame(Outcome=0:5,Probability=map_dbl(0:5,~choose(5,.x)*0.5^5)) %>% 
+  mutate(Cumulative_probability=cumsum(Probability))### instead of for loop, using iteration from purrr package
+df8%>% 
+    kbl(caption = "Cumulative Distribution") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+```
+The same may be plotted as
+```{r,warning=FALSE}
+df8 %>% 
+  plot_ly(
+    x=~Outcome,
+    y=~Cumulative_probability,
+    type = 'scatter', 
+    mode = 'lines+markers'
+  ) %>% 
+  layout(
+    title="Cumulative Disrtibution Values"
+  )
+```
+
+
+### Sample Space
+
+An important concept in probability is sample space denoted as $\Omega$. It is the set of all the possible outcomes of an experiment. In our experiment, we have carried out $5$ trials with replacement of balls. The number of ways no red balls comes out in $5$ trails is ${}^{5}C_{0}$. The number of ways one red ball comes out is ${}^{5}C_{1}$. Hence, our unique distinct elements will be ${}^{5}C_{0}+{}^{5}C_{1}+{}^{5}C_{2}+{}^{5}C_{3}+{}^{5}C_{4}+{}^{5}C_{5}=(1+1)^{5}=2^{5}=32$.\
+Alternatively, in the first trial either red ball or white ball can turn up. So, there are two possibilities in the first trial. The same is possible for rest of the other trials. Hence, the number of ways we can have distinct elements = $2*2*2*2*2=2^{5}=32$.\
+Let us check the same. we have run the experiment for 250,000 times. We can use the output of the same to find the sample space of our experiment. The output is stored in data frame new\_data.
+
+```{r}
+head(new_data)
+ss<-new_data %>% ## ss is the sample space
+  select(-Red.Ball.Count) %>% 
+  group_by_all() %>% 
+  tally() %>% 
+  select(-n) 
+ss$S.No<-1:32
+ss %>% relocate(S.No, .before=Draw1) %>% 
+    kbl(caption = "Sample Space of the Experiment") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+
+```
+
+Each element of the sample space is an outcome of our experiment and is denoted by $\omega_{i}$.
+
+### Random Variables
+
+I have discussed a few times about Random\_Values as the outcome of our experiment, which is the count of number of red balls in $\omega_{i} \subset \Omega$. A formal definition of Random Variable is as under:\
+$f\colon (\omega_{i} \subset \Omega )\to R$\
+i.e. Random Variable is a function where the input is an element of the sample space and the output is an element of $\mathbf{R}$. In our case, $\omega_{i}$ is any subset of $\Omega$ and the outcome is the number of red balls.
+
+```{r}
+ss1<-ss[,1:5]
+
+Rand_variable<-rep(NA,32)
+pqr<-matrix(ncol=5,nrow = 32)
+for(i in 1:32){
+  for (j in 1:5){
+    if(ss1[i,j]=="Red"){
+      pqr[i,j]=1
+    }else{0}
+  }
+  Rand_variable[i]=sum(pqr[i,],na.rm=T)
+}
+
+ss$Rand_Variable=Rand_variable
+
+ss %>% relocate(S.No,.before=Draw1) %>% 
+    kbl(caption = "Sample Space and Random Variable of the Experiment") %>% 
+    kable_classic(full_width = F, html_font = "Cambria")%>%
+  kable_paper("hover",full_width=T)
+  
+```
+
+Thus, the random variables are discreet in nature when we have Binomial Distribution.\
+
+Now that we have seen the shape of distributions for two probability values of red balls to be picked viz. 0.5 and $\frac{2}{3}$. Let's try to see how the distribution changes with different values of probability.
+
+```{r,warning=FALSE,message=FALSE}
+p<-seq(0,1,0.05)
+l<-length(p)
+n<-6
+rv<-rep(0:n,l)
+p_red<-rep(NA,l*(n+1))
+
+for (i in 1:l){
+  p_red[(1+(i-1)*(1+n)):((n+1)*i)]=p[i]
+}
+mydata<-data.frame(RV=rv,Prob_red_ball=p_red)
+mydata <-mydata %>% 
+  mutate(Prob_RV=dbinom(RV,n,Prob_red_ball))
+
+mydata %>% 
+  plot_ly(
+    x=~RV,
+    y=~Prob_RV,
+    frame = ~Prob_red_ball,
+    type='bar',
+    color=I('aquamarine3')
+    
+  ) %>%
+  animation_slider(
+    currentvalue = list( prefix = "n=6;p= ",font = list(color="red"))
+  ) %>% 
+  layout(title="Probability Distribution of Random Variables ",
+         xaxis=list(title="Random Variables"),
+         yaxis=list(title="Probability of Random Variables")
+         
+         )
+```
+
+The above plot shows the probability values of random variables with regards to different values of *p*; the probability of red balls. We can use the slider above to select a value of *p* and check the distribution. It can be seen that when *p* = 0; i.e. when there are only white balls in the jar, the probability of Random Variable 0 is 1 which makes sense as no red balls can be drawn. Similarly, when *p* =1; implies that all the balls in the jar is red and therefore, in all the 6 draws red ball will be pulled out. Hence, the probability of Random Variable $6=1$. Rest all the random variables will be zero.
+
+### Mean or Expectation of Random Variable
+
+Finally, we can conclude this chapter discussing about the mean or the expected value of the random variable. This is also called the *first moment of distribution*. It is denoted as $E[X]$. To calculate the mean value, let us carry out an experiment with $6$ draws and where the probability of pulling out the red ball is $\frac{2}{3}$. We will calculate the mean of random values after each trail. We will use R to directly give us the values of random variables by using a function *rbinom*. Let's first see this function, where we are carrying out 10 trials for $n=6$ draws wherein probability of pulling red ball is $p=\frac{2}{3}$.
+
+```{r}
+rbinom(10,6,2/3)
+```
+
+The first argument of this function is the number of trials, the second being number of draws $n=6$ and finally $p=\frac{2}{3}$. The outcome is random variable between 0 to 6 implying how many red balls were pulled out in each draw. We need to calculate mean of each trial to ascertain $E[X]$.
+
+```{r,message=FALSE,warning=FALSE}
+n<-10000 # number of trails
+mean_random_variable<-rep(NA,n)
+for(i in 1:n){
+  abc<-rbinom(i,6,2/3)
+  mean_random_variable[i]=mean(abc)
+}
+mydata<-data.frame(No_of_trials=1:n,Mean_Random_Variable=mean_random_variable)
+q1<-mydata %>% 
+  ggplot(aes(No_of_trials,Mean_Random_Variable))+geom_line(alpha=0.4)+
+  labs(x="Number of Trails",
+       y="Mean of Random Variable",
+       title = "Expected value of Random Variable",
+       subtitle = "p=0.67 and n=6")+
+  geom_abline(slope = 0,intercept = 4,color="navyblue")+theme_minimal()
+fig1<-q1+transition_reveal(No_of_trials)+geom_point()
+fig1
+```
+
+So we see that the mean is converging at random variable 4 as the trails are increasing.
+
+#### Expectation matematically.
+
+Let's see the outcome again when *n* is 6 and *p* is $\frac{2}{3}$. we again carry on our experiment for 250,000 times. The output is reflected below.
+
+```{r}
+set.seed(1)
+df6<-ashish(2,1,6,250000)
+df6%>% 
+    kbl(caption = "Probability Table of Random Variable of the Experiment") %>% 
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+```
+
+The weighted mean of the random variables will be:
+
+```{r}
+(0*332+1*4109+2*20752+3*55013+4*82353+5*65593+6*21848)/250000
+```
+
+Thus, we see that the mean value of the random number of the outcome is converging at 4 as our trials will increase. Let's calculate the probability value of each random variable precisely using *pmf*.
+
+```{r}
+set.seed(1)
+df7<-data.frame(Random_values=0:6,Probability=map_dbl(0:6,~choose(6,.x)*(2/3)^(.x)*(1/3)^(6-.x)))
+df7%>% 
+    kbl(caption = "Probability Table of Random Variable of the Experiment") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+```
+
+Adding a new column to the above data which is the multiple of the random variable with its probability, we get
+
+```{r}
+df7<-df7 %>% 
+  mutate(Rv.p=Random_values*Probability) 
+  
+df7%>%
+  kbl(caption = "Probability Table of Random Variable of the Experiment") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+sum(df7$Rv.p)
+
+```
+
+Hence, $E[X]=\sum\limits_{i=0}^nx_{i}*p_{i}$.\
+Incidentally, the E[X] for binomial distribution having parameters *n* and *p* is $\textbf{E[X]=n*p}$. Thus, when *p* is $\frac{2}{3}$ and *n* is $6$, the Expected value of the Random Variable is $n*p=4$ as we have seen before.
+
+### Conclusion and a real life example.
+
+Cricket is most popular game in India. One of the greatest batsman of India in the 21st century is [M.S.Dhoni](https://en.wikipedia.org/wiki/MS_Dhoni). ![](msd.jpeg){width="170"}\
+
+Let's assume that a study is done on him where it is found that Dhoni's ability to hit a six is 40 % whenever he plays a ball. We know that there are 6 balls in the over. Then, if it is asked that what is the probability of Dhoni hitting 3 sixes in 6 balls that he faces?\
+
+Thus, the two parameters here are $n=6$ and $p=0.4$. Then, the answer to above question can be calculated by *pmf* which is
+
+```{r}
+dbinom(3,6,0.4)
+```
+
+Hence, Dhoni's probability of hitting 3 sixes in 6 balls is $0.27648$. Further, his probability of hitting less than or equal to 3 sixes in 6 balls can be calculated via *cdf* which is 
+```{r}
+sum(map_dbl(0:3,~choose(6,.x)*(0.4)^(.x)*(1-0.4)^(6-.x)))
+### alternatively
+pbinom(3,6,0.4)
+
+```
+
+Thus, there is $82.08$ percent chance that Dhoni will hit less than or equal to 3 sixes in 6 balls. Further,
+the probability that he will hit more than 3 sixes is 
+```{r}
+1-pbinom(3,6,0.4)
+## or
+pbinom(3,6,0.4,lower.tail = F)
+# or
+sum(map_dbl(4:6,~choose(6,.x)*(0.4)^(.x)*(1-0.4)^(6-.x)))
+```
+
+Hence, we see that how many sixes Dhoni will be hitting in the six balls based on the questions we are interested in. Finally we know that the mean number of sixes he will hit is $0.4*6=2.4$. But it's not possible to hit 2.4 sixes (the output being discreet) we can safely assume that the probability of hitting 2 sixes in 6 balls is maximum when *p*=0.4. We can check the same by using the slider in the section Random Variables, the values of same is below;\
+```{r}
+conc<-data.frame(No_of_sixes=0:6,Probability=map_dbl(0:6,~choose(6,.x)*(0.4)^(.x)*(1-0.4)^(6-.x)))
+conc%>% 
+    kbl(caption = "Dhoni's sixes with p=0.4") %>% 
+    kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_paper("hover",full_width=T)
+```
+As discussed above, the maximum probability is for hitting 2 sixes which is $0.311$.\
+
+That's Binomial Distribution. We will subsequently visit it again in Chapter 3. A special case of Binomial Distribution is *Bernoulli Distribution* where parameter of Binomial Distribution *n* is 1. \
+
+Finally, the following is the current tools used to run the above code
+```{r}
+sessionInfo()
+```
+
